@@ -40,15 +40,15 @@ public class JwtUtil {
             .build().parseClaimsJws(token).getBody();
     }
 
-    private String extractEmail(String token) {
+    public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    private String extractRole(String token) {
+    public String extractRole(String token) {
         return (String) extractAllClaims(token).get("role");
     }
 
-    public boolean isTokenExpired(String token) {
+    private boolean isTokenExpired(String token) {
         return extractAllClaims(token).getExpiration().before(new Date());
     }
 
