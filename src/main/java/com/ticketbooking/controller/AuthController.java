@@ -3,7 +3,6 @@ package com.ticketbooking.controller;
 import com.ticketbooking.dto.AuthResponse;
 import com.ticketbooking.dto.LoginRequest;
 import com.ticketbooking.dto.RegisterRequest;
-import com.ticketbooking.entity.User;
 import com.ticketbooking.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
