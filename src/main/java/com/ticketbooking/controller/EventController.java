@@ -3,8 +3,8 @@ package com.ticketbooking.controller;
 import com.ticketbooking.dto.EventRequest;
 import com.ticketbooking.dto.EventUpdateRequest;
 import com.ticketbooking.entity.Event;
-import com.ticketbooking.entity.Role;
 import com.ticketbooking.entity.User;
+import com.ticketbooking.exception.ResourceNotFoundException;
 import com.ticketbooking.repository.UserRepository;
 import com.ticketbooking.service.EventService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,15 +26,12 @@ public class EventController {
     private UserRepository userRepository;
 
     private User getCurrentUser(UserDetails userDetails) {
-        return userRepository.findByEmail(userDetails.getUsername()).orElseThrow(() -> new RuntimeException("User not found"));
+        return userRepository.findByEmail(userDetails.getUsername()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     @PostMapping
     public ResponseEntity<Event> createEvent(@AuthenticationPrincipal UserDetails userDetails, @RequestBody EventRequest request) {
         User currentUser = getCurrentUser(userDetails);
-        if (!currentUser.getRole().equals(Role.HOST)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
         Event createdEvent = eventService.createEvent(
             request.getName(), request.getDescription(), request.getVenue(),
             request.getEventDate(), request.getTotalSeats(), currentUser);

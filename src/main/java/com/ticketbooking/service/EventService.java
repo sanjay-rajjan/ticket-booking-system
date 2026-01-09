@@ -3,6 +3,10 @@ package com.ticketbooking.service;
 import com.ticketbooking.entity.Event;
 import com.ticketbooking.entity.Role;
 import com.ticketbooking.entity.User;
+import com.ticketbooking.exception.BadRequestException;
+import com.ticketbooking.exception.ConflictException;
+import com.ticketbooking.exception.ResourceNotFoundException;
+import com.ticketbooking.exception.UnauthorizedException;
 import com.ticketbooking.repository.EventRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,24 +21,27 @@ public class EventService {
 
     public Event createEvent(String name, String description, String venue, LocalDateTime eventDate,
                              Integer totalSeats, User createdBy) {
+        if (!createdBy.getRole().equals(Role.HOST)) {
+            throw new UnauthorizedException("Only hosts can create events");
+        }
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Event name is required");
+            throw new BadRequestException("Event name is required");
         }
         if (venue == null || venue.trim().isEmpty()) {
-            throw new IllegalArgumentException("Venue is required");
+            throw new BadRequestException("Venue is required");
         }
         if (eventDate == null) {
-            throw new IllegalArgumentException("Event date is required");
+            throw new BadRequestException("Event date is required");
         }
         if (eventDate.isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Event date must be in the future");
+            throw new BadRequestException("Event date must be in the future");
         }
         if (totalSeats == null || totalSeats <= 0) {
-            throw new IllegalArgumentException("Total seats must be greater than 0");
+            throw new BadRequestException("Total seats must be greater than 0");
         }
 
         if (eventRepository.existsByNameAndVenueAndEventDate(name, venue, eventDate)) {
-            throw new RuntimeException("An event with this name already exists at this venue on this date/time");
+            throw new ConflictException("An event with this name already exists at this venue on this date/time");
         }
         Event event = new Event();
         event.setName(name);
@@ -56,7 +63,7 @@ public class EventService {
     }
 
     public Event getEventById(Long id) {
-        return eventRepository.findById(id).orElseThrow(() -> new RuntimeException("Event not found with id: " + id));
+        return eventRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
     }
 
     public List<Event> searchEventsByVenue(String venue) {
@@ -74,7 +81,7 @@ public class EventService {
                              Integer totalSeats, User currentUser) {
         Event event = getEventById(id);
         if (!(event.getCreatedBy().getId().equals(currentUser.getId()) || currentUser.getRole().equals(Role.ADMIN))) {
-            throw new RuntimeException("You are not authorized to update this event");
+            throw new UnauthorizedException("You are not authorized to update this event");
         }
 
         if (name != null && !name.trim().isEmpty()) {
@@ -88,11 +95,14 @@ public class EventService {
         }
         if (eventDate != null) {
             if (eventDate.isBefore(LocalDateTime.now())) {
-                throw new IllegalArgumentException("Event date must be in the future");
+                throw new BadRequestException("Event date must be in the future");
             }
             event.setEventDate(eventDate);
         }
-        if (totalSeats != null && totalSeats > 0) {
+        if (totalSeats != null) {
+            if (totalSeats <= 0) {
+                throw new BadRequestException("Total seats must be greater then 0");
+            }
             event.setTotalSeats(totalSeats);
         }
         return eventRepository.save(event);
@@ -102,7 +112,7 @@ public class EventService {
         Event event = getEventById(id);
         if (!(event.getCreatedBy().getId().equals(currentUser.getId()) ||
         currentUser.getRole().equals(Role.ADMIN))) {
-            throw new RuntimeException("You are not authorized to delete this event");
+            throw new UnauthorizedException("You are not authorized to delete this event");
         }
         eventRepository.deleteById(id);
     }
